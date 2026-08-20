@@ -97,6 +97,7 @@ main:
 # infrastructureEnabled: DRPolicy, DRCluster validation, and chart-owned DRClusters only
 # (useful when resourcesEnabled is false, e.g. partner CSI without DRPC/VMs).
 ramen:
+  updateRamenConfig: true
   # -- When false, skip DRPC, Placement, and DRPC health job. DRPolicy/validation/DRClusters
   # still render if infrastructureEnabled is true.
   resourcesEnabled: true

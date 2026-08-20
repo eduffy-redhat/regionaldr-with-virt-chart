@@ -1,12 +1,7 @@
-{{- if eq "1" (include "rdr.s3StoreProfilesCreate" . | trim) }}
+{{- if eq true (.Values.ramen.updateRamenConfig | default false) }}
 {{- $ssp := ((.Values.drCluster | default dict).s3StoreProfiles | default dict) -}}
 {{- $ramen := ($ssp.ramen | default dict) -}}
-{{- $secretRef := ($ssp.s3SecretRef | default dict) -}}
-{{- $credSrc := ($ssp.credentialsSource | default dict) -}}
-{{- $epSrc := ($ssp.endpointSource | default dict) -}}
 {{- $job := ($ssp.job | default dict) -}}
-{{- $primary := ($ssp.primary | default dict) -}}
-{{- $secondary := ($ssp.secondary | default dict) -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
