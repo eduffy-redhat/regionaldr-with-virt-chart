@@ -1,0 +1,14 @@
+{{- if eq "1" (include "rdr.s3StoreProfilesCreate" . | trim) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: update-ramen-config-script
+  namespace: open-cluster-management
+  labels:
+    app.kubernetes.io/name: update-ramen-config
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ ((((.Values.drCluster | default dict).s3StoreProfiles | default dict).job | default dict).argoCDSyncWave | default "6") | quote }}
+data:
+  update-ramen-config.sh: |
+{{ .Files.Get "files/update-ramen-config.sh" | indent 4 }}
+{{- end }}

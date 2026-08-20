@@ -1,0 +1,83 @@
+{{- if eq "1" (include "rdr.s3StoreProfilesCreate" . | trim) }}
+{{- $ssp := ((.Values.drCluster | default dict).s3StoreProfiles | default dict) -}}
+{{- $ramen := ($ssp.ramen | default dict) -}}
+{{- $secretRef := ($ssp.s3SecretRef | default dict) -}}
+{{- $credSrc := ($ssp.credentialsSource | default dict) -}}
+{{- $epSrc := ($ssp.endpointSource | default dict) -}}
+{{- $job := ($ssp.job | default dict) -}}
+{{- $primary := ($ssp.primary | default dict) -}}
+{{- $secondary := ($ssp.secondary | default dict) -}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: update-ramen-config
+  namespace: open-cluster-management
+  labels:
+    app.kubernetes.io/name: update-ramen-config
+  annotations:
+    # Sync (not PostSync): must complete before DRClusters (wave 7) and DRPolicy
+    # validation (wave 8), which require s3StoreProfiles in RamenConfig.
+    argocd.argoproj.io/sync-wave: {{ ($job.argoCDSyncWave | default "6") | quote }}
+    argocd.argoproj.io/sync-options: Prune=false
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    checksum/script: {{ .Files.Get "files/upsert-update-ramen-config.sh" | sha256sum }}
+spec:
+  backoffLimit: {{ $job.backoffLimit | default 10 }}
+  activeDeadlineSeconds: {{ $job.activeDeadlineSeconds | default 7200 }}
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: update-ramen-config
+        app.kubernetes.io/component: s3-store-profiles
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: update-ramen-config
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: upsert
+        image: {{ $.Values.ansible.containerImage }}
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: RAMEN_NAMESPACE
+          value: {{ ($ramen.namespace | default "openshift-operators") | quote }}
+        - name: RAMEN_CONFIGMAP
+          value: {{ ($ramen.configMapName | default "ramen-hub-operator-config") | quote }}
+        - name: RAMEN_CONFIG_KEY
+          value: {{ ($ramen.configKey | default "ramen_manager_config.yaml") | quote }}
+        - name: WAIT_SECONDS
+          value: {{ ($job.waitSeconds | default 3600) | quote }}
+        - name: POLL_INTERVAL
+          value: {{ ($job.pollInterval | default 15) | quote }}
+        command:
+        - /bin/bash
+        - /scripts/update-ramen-config.sh
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+          readOnly: true
+      volumes:
+      - name: scripts
+        configMap:
+          name: update-ramen-config-script
+          defaultMode: 0755
+{{- end }}
