@@ -51,6 +51,7 @@ patch() {
 	yq eval -i '.drClusterOperator.catalogSourceNamespaceName="openshift-marketplace"' "$f"
 	yq eval -i '.drClusterOperator.packageName="rhdr-cluster-operator"' "$f"
 	yq eval -i '.drClusterOperator.channelName="stable-4.22"' "$f"
+	yq eval -i '.drClusterOperator.namespaceName="openshift-dr-system"' "$f"
 
 }
 
