@@ -48,7 +48,7 @@ patch() {
 	local f="$1"
 
 	yq eval -i '.drClusterOperator.catalogSourceName="ramen-catalog"' "$f"
-	yq eval -i '.drClusterOperator.catalogSourceNamespaceName="openshift-dr-system"' "$f"
+	yq eval -i '.drClusterOperator.catalogSourceNamespaceName="openshift-marketplace"' "$f"
 
 }
 
