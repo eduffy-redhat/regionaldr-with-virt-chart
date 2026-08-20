@@ -47,7 +47,7 @@ wait_for_ramen_cm() {
 patch() {
 	local f="$1"
 
-	yq eval -i '.drClusterOperator.catalogSourceName="rhdr-catalog"' "$f"
+	yq eval -i '.drClusterOperator.catalogSourceName="ramen-catalog"' "$f"
 	yq eval -i '.drClusterOperator.catalogSourceNamespaceName="openshift-dr-system"' "$f"
 
 }
