@@ -28,7 +28,7 @@ spec:
         app.kubernetes.io/component: s3-store-profiles
     spec:
       restartPolicy: OnFailure
-      serviceAccountName: update-ramen-config
+      serviceAccountName: ramen-s3-profiles
       securityContext:
         runAsNonRoot: true
         seccompProfile:
