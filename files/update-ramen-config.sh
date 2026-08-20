@@ -49,6 +49,7 @@ patch() {
 
 	yq eval -i '.drClusterOperator.catalogSourceName="ramen-catalog"' "$f"
 	yq eval -i '.drClusterOperator.catalogSourceNamespaceName="openshift-marketplace"' "$f"
+	yq eval -i '.drClusterOperator.packageName="rhdr-cluster-operator"' "$f"
 
 }
 
