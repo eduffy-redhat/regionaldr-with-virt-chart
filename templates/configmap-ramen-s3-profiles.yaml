@@ -12,4 +12,6 @@ metadata:
 data:
   upsert-ramen-s3-profiles.sh: |
 {{ .Files.Get "files/upsert-ramen-s3-profiles.sh" | indent 4 }}
+  restart-ramen-hub-operator.sh: |
+{{ .Files.Get "files/restart-ramen-hub-operator.sh" | indent 4 }}
 {{- end }}

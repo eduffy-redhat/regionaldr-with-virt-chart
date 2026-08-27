@@ -29,10 +29,8 @@ command -v yq >/dev/null 2>&1 || die "yq not found (need mikefarah/yq v4)"
 
 mkdir -p "$WORK_DIR"
 
-jsonpath_for_key() {
-	local key="$1"
-	echo "{.data.$(printf '%s' "$key" | sed 's/\./\\./g')}"
-}
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/restart-ramen-hub-operator.sh"
 
 wait_for_ramen_cm() {
 	local deadline=$((SECONDS + WAIT_SECONDS))
@@ -82,14 +80,9 @@ apply_patches() {
 		die "Empty ${RAMEN_CONFIG_KEY}; Panic!"
 	fi
 
+	cp "$f" "$WORK_DIR/before.yaml"
 	patch "$f"
-
-	oc get configmap "$RAMEN_CONFIGMAP" -n "$RAMEN_NAMESPACE" -o yaml >"$WORK_DIR/cm.yaml"
-	# load_str embeds the YAML file as a string value for the data key
-	yq eval -i ".data.\"${RAMEN_CONFIG_KEY}\" = load_str(\"${f}\")" "$WORK_DIR/cm.yaml"
-	oc apply -f "$WORK_DIR/cm.yaml"
-
-	log "Successfully patched ramen config in ${RAMEN_NAMESPACE}/${RAMEN_CONFIGMAP}"
+	apply_ramen_config_if_changed "$WORK_DIR/before.yaml" "$f"
 }
 
 main() {

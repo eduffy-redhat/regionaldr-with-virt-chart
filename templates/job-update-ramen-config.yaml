@@ -18,7 +18,7 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-    checksum/script: {{ .Files.Get "files/update-ramen-config.sh" | sha256sum }}
+    checksum/script: {{ printf "%s%s" (.Files.Get "files/update-ramen-config.sh") (.Files.Get "files/restart-ramen-hub-operator.sh") | sha256sum }}
 spec:
   backoffLimit: {{ $job.backoffLimit | default 10 }}
   activeDeadlineSeconds: {{ $job.activeDeadlineSeconds | default 7200 }}
@@ -100,4 +100,6 @@ metadata:
 data:
   update-ramen-config.sh: |
 {{ .Files.Get "files/update-ramen-config.sh" | indent 4 }}
+  restart-ramen-hub-operator.sh: |
+{{ .Files.Get "files/restart-ramen-hub-operator.sh" | indent 4 }}
 {{- end }}

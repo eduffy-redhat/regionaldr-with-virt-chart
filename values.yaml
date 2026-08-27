@@ -40,7 +40,7 @@ drCluster:
   # Does not set caCertificates — opp-policy s3CaInjector owns that.
   s3StoreProfiles:
     ramen:
-      # -- Namespace of the hub Ramen operator ConfigMap.
+      # -- Namespace of the hub Ramen operator ConfigMap and operator pods.
       namespace: openshift-operators
       # -- Hub Ramen ConfigMap name.
       configMapName: ramen-hub-operator-config
@@ -97,7 +97,7 @@ main:
 # infrastructureEnabled: DRPolicy, DRCluster validation, and chart-owned DRClusters only
 # (useful when resourcesEnabled is false, e.g. partner CSI without DRPC/VMs).
 ramen:
-  # -- When true, run the update-ramen-config Job and RBAC to patch hub Ramen ConfigMap.
+  # -- When true, run the update-ramen-config Job and RBAC to patch hub Ramen ConfigMap (restarts hub operator only if the ConfigMap changed).
   updateRamenConfig: false
   # -- drClusterOperator fields written into ramen_manager_config.yaml when updateRamenConfig is true.
   # Set a field to false or "" to leave that key unchanged in the hub ConfigMap.

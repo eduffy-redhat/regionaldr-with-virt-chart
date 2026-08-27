@@ -46,6 +46,8 @@ tests:
           value: ConfigMap
       - isNotNull:
           path: data["upsert-ramen-s3-profiles.sh"]
+      - isNotNull:
+          path: data["restart-ramen-hub-operator.sh"]
 
   - it: Job uses sync-wave 6 and hub S4 defaults
     set:
@@ -194,7 +196,56 @@ tests:
       - rbac-ramen-s3-profiles.yaml
     asserts:
       - hasDocuments:
-          count: 3
+          count: 5
+      - documentSelector:
+          path: kind
+          value: Role
+        equal:
+          path: metadata.name
+          value: ramen-s3-profiles-hub-operator
+      - documentSelector:
+          path: kind
+          value: Role
+        equal:
+          path: metadata.namespace
+          value: openshift-operators
+      - documentSelector:
+          path: kind
+          value: Role
+        contains:
+          path: rules[0].verbs
+          content: delete
+      - documentSelector:
+          path: kind
+          value: RoleBinding
+        equal:
+          path: metadata.namespace
+          value: openshift-operators
+      - documentSelector:
+          path: kind
+          value: RoleBinding
+        equal:
+          path: subjects[0].name
+          value: ramen-s3-profiles
+
+  - it: hub-operator Role follows ramen.namespace override
+    set:
+      ramen:
+        resourcesEnabled: false
+        infrastructureEnabled: true
+      drCluster:
+        s3StoreProfiles:
+          ramen:
+            namespace: openshift-dr-system
+    templates:
+      - rbac-ramen-s3-profiles.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: openshift-dr-system
 
   - it: renders when drCluster.create is true even with resourcesEnabled
     set:

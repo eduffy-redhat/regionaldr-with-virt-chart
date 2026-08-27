@@ -1,0 +1,111 @@
+suite: update-ramen-config Job
+templates:
+  - job-update-ramen-config.yaml
+  - rbac-update-ramen-config.yaml
+tests:
+  - it: does not render when updateRamenConfig is false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders Job and script ConfigMap when updateRamenConfig is true
+    set:
+      ramen:
+        updateRamenConfig: true
+    templates:
+      - job-update-ramen-config.yaml
+    asserts:
+      - hasDocuments:
+          count: 2
+      - documentSelector:
+          path: kind
+          value: Job
+        equal:
+          path: metadata.name
+          value: update-ramen-config
+      - documentSelector:
+          path: kind
+          value: Job
+        equal:
+          path: metadata.annotations["argocd.argoproj.io/sync-wave"]
+          value: "6"
+      - documentSelector:
+          path: kind
+          value: Job
+        equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="RAMEN_NAMESPACE")].value
+          value: openshift-operators
+      - documentSelector:
+          path: kind
+          value: Job
+        equal:
+          path: spec.template.spec.serviceAccountName
+          value: update-ramen-config
+      - documentSelector:
+          path: kind
+          value: ConfigMap
+        equal:
+          path: metadata.name
+          value: update-ramen-config-script
+      - documentSelector:
+          path: kind
+          value: ConfigMap
+        isNotNull:
+          path: data["update-ramen-config.sh"]
+      - documentSelector:
+          path: kind
+          value: ConfigMap
+        isNotNull:
+          path: data["restart-ramen-hub-operator.sh"]
+
+  - it: renders RBAC including hub-operator pod Role
+    set:
+      ramen:
+        updateRamenConfig: true
+    templates:
+      - rbac-update-ramen-config.yaml
+    asserts:
+      - hasDocuments:
+          count: 5
+      - documentSelector:
+          path: kind
+          value: Role
+        equal:
+          path: metadata.name
+          value: update-ramen-config-hub-operator
+      - documentSelector:
+          path: kind
+          value: Role
+        equal:
+          path: metadata.namespace
+          value: openshift-operators
+      - documentSelector:
+          path: kind
+          value: Role
+        contains:
+          path: rules[0].verbs
+          content: delete
+      - documentSelector:
+          path: kind
+          value: RoleBinding
+        equal:
+          path: subjects[0].name
+          value: update-ramen-config
+
+  - it: hub-operator Role follows ramen.namespace override
+    set:
+      ramen:
+        updateRamenConfig: true
+      drCluster:
+        s3StoreProfiles:
+          ramen:
+            namespace: openshift-dr-system
+    templates:
+      - rbac-update-ramen-config.yaml
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - equal:
+          path: metadata.namespace
+          value: openshift-dr-system

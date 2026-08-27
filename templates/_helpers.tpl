@@ -217,6 +217,13 @@ s3profile-{{ include "rdr.secondaryClusterName" . }}
 {{- end -}}
 {{- end -}}
 
+{{/* Namespace of the hub Ramen operator Deployment / ConfigMap. */}}
+{{- define "rdr.ramenOperatorNamespace" -}}
+{{- $ssp := ((.Values.drCluster | default dict).s3StoreProfiles | default dict) -}}
+{{- $ramen := ($ssp.ramen | default dict) -}}
+{{- $ramen.namespace | default "openshift-operators" -}}
+{{- end -}}
+
 {{/* Hub Ramen ConfigMap patch job + RBAC. Default off. */}}
 {{- define "rdr.updateRamenConfigEnabled" -}}
 {{- $ramen := .Values.ramen | default dict -}}

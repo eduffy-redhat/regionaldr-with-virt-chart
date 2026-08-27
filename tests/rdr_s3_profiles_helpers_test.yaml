@@ -19,6 +19,9 @@ tests:
       - equal:
           path: data.secondaryS3ProfileName
           value: s3profile-ocp-secondary
+      - equal:
+          path: data.ramenOperatorNamespace
+          value: openshift-operators
 
   - it: partner infrastructure path enables create and keeps default names
     set:
@@ -63,6 +66,18 @@ tests:
       - equal:
           path: data.secondaryS3ProfileName
           value: explicit-secondary
+
+  - it: ramenOperatorNamespace follows s3StoreProfiles.ramen.namespace
+    set:
+      helmUnittest.s3Profiles.enabled: true
+      drCluster:
+        s3StoreProfiles:
+          ramen:
+            namespace: openshift-dr-system
+    asserts:
+      - equal:
+          path: data.ramenOperatorNamespace
+          value: openshift-dr-system
 
   - it: s3StoreProfilesCreate matches drClusterCreate
     set:

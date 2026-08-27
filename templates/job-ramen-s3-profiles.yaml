@@ -22,7 +22,7 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-    checksum/script: {{ .Files.Get "files/upsert-ramen-s3-profiles.sh" | sha256sum }}
+    checksum/script: {{ printf "%s%s" (.Files.Get "files/upsert-ramen-s3-profiles.sh") (.Files.Get "files/restart-ramen-hub-operator.sh") | sha256sum }}
 spec:
   backoffLimit: {{ $job.backoffLimit | default 10 }}
   activeDeadlineSeconds: {{ $job.activeDeadlineSeconds | default 7200 }}

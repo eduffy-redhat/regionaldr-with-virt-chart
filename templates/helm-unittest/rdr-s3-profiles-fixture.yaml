@@ -12,4 +12,5 @@ data:
   drClusterCreate: {{ include "rdr.drClusterCreate" . | trim | quote }}
   primaryS3ProfileName: {{ include "rdr.drClusterPrimaryS3ProfileName" . | quote }}
   secondaryS3ProfileName: {{ include "rdr.drClusterSecondaryS3ProfileName" . | quote }}
+  ramenOperatorNamespace: {{ include "rdr.ramenOperatorNamespace" . | quote }}
 {{- end }}

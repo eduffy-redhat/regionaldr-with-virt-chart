@@ -41,10 +41,8 @@ mkdir -p "$WORK_DIR"
 PRIMARY_BUCKET="${PRIMARY_BUCKET:-$PRIMARY_PROFILE_NAME}"
 SECONDARY_BUCKET="${SECONDARY_BUCKET:-$SECONDARY_PROFILE_NAME}"
 
-jsonpath_for_key() {
-	local key="$1"
-	echo "{.data.$(printf '%s' "$key" | sed 's/\./\\./g')}"
-}
+# shellcheck disable=SC1091
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/restart-ramen-hub-operator.sh"
 
 wait_for_secret() {
 	local ns="$1"
@@ -230,13 +228,10 @@ s3StoreProfiles: []
 EOF
 	fi
 
+	cp "$f" "$WORK_DIR/before.yaml"
 	upsert_one "$f" "$PRIMARY_PROFILE_NAME" "$PRIMARY_BUCKET"
 	upsert_one "$f" "$SECONDARY_PROFILE_NAME" "$SECONDARY_BUCKET"
-
-	oc get configmap "$RAMEN_CONFIGMAP" -n "$RAMEN_NAMESPACE" -o yaml >"$WORK_DIR/cm.yaml"
-	# load_str embeds the YAML file as a string value for the data key
-	yq eval -i ".data.\"${RAMEN_CONFIG_KEY}\" = load_str(\"${f}\")" "$WORK_DIR/cm.yaml"
-	oc apply -f "$WORK_DIR/cm.yaml"
+	apply_ramen_config_if_changed "$WORK_DIR/before.yaml" "$f"
 
 	oc get configmap "$RAMEN_CONFIGMAP" -n "$RAMEN_NAMESPACE" -o "jsonpath=${jp}" >"$WORK_DIR/verify.yaml"
 	for n in "$PRIMARY_PROFILE_NAME" "$SECONDARY_PROFILE_NAME"; do

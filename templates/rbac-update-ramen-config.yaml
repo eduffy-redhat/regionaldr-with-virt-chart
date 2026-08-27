@@ -26,6 +26,40 @@ rules:
   resources: ["configmaps"]
   verbs: ["get", "list", "watch", "update", "patch"]
 ---
+# Bounce ramen-hub-operator pods after a real ConfigMap change. OLM reverts
+# Deployment rollout-restart; delete the pods instead.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: update-ramen-config-hub-operator
+  namespace: {{ include "rdr.ramenOperatorNamespace" . }}
+  labels:
+    app.kubernetes.io/name: update-ramen-config
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $wave }}
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: update-ramen-config-hub-operator
+  namespace: {{ include "rdr.ramenOperatorNamespace" . }}
+  labels:
+    app.kubernetes.io/name: update-ramen-config
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $wave }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: update-ramen-config-hub-operator
+subjects:
+- kind: ServiceAccount
+  name: update-ramen-config
+  namespace: open-cluster-management
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
