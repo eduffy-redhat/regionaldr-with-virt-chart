@@ -224,17 +224,18 @@ s3profile-{{ include "rdr.secondaryClusterName" . }}
 {{- end -}}
 
 {{/*
-Env value for drClusterOperator patch fields. Uses chart default only when the key is absent;
+Env value for drClusterOperator patch fields. Uses chart values.yaml defaults when the key is absent;
 explicit false or "" is passed through so the script can skip that yq edit.
 */}}
 {{- define "rdr.drClusterOperatorPatchEnvValue" -}}
+{{- $root := index . "root" -}}
 {{- $cfg := index . "config" -}}
 {{- $key := index . "key" -}}
-{{- $default := index . "default" -}}
+{{- $defaults := ((index $root.Values.ramen | default dict).drClusterOperator | default dict) -}}
 {{- if hasKey $cfg $key -}}
 {{- index $cfg $key | toString -}}
-{{- else -}}
-{{- $default -}}
+{{- else if hasKey $defaults $key -}}
+{{- index $defaults $key | toString -}}
 {{- end -}}
 {{- end -}}
 

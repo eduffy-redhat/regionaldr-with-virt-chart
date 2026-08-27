@@ -62,15 +62,15 @@ spec:
         - name: RAMEN_CONFIG_KEY
           value: {{ ($ramen.configKey | default "ramen_manager_config.yaml") | quote }}
         - name: DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAME
-          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "catalogSourceName" "default" "ramen-catalog") | quote }}
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "root" $ "config" $dco "key" "catalogSourceName") | quote }}
         - name: DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAMESPACE
-          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "catalogSourceNamespaceName" "default" "openshift-marketplace") | quote }}
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "root" $ "config" $dco "key" "catalogSourceNamespaceName") | quote }}
         - name: DR_CLUSTER_OPERATOR_PACKAGE_NAME
-          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "packageName" "default" "rhdr-cluster-operator") | quote }}
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "root" $ "config" $dco "key" "packageName") | quote }}
         - name: DR_CLUSTER_OPERATOR_CHANNEL_NAME
-          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "channelName" "default" "stable-4.22") | quote }}
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "root" $ "config" $dco "key" "channelName") | quote }}
         - name: DR_CLUSTER_OPERATOR_NAMESPACE
-          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "namespaceName" "default" "openshift-dr-system") | quote }}
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "root" $ "config" $dco "key" "namespaceName") | quote }}
         - name: WAIT_SECONDS
           value: {{ ($job.waitSeconds | default 3600) | quote }}
         - name: POLL_INTERVAL
