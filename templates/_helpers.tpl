@@ -217,6 +217,27 @@ s3profile-{{ include "rdr.secondaryClusterName" . }}
 {{- end -}}
 {{- end -}}
 
+{{/* Hub Ramen ConfigMap patch job + RBAC. Default off. */}}
+{{- define "rdr.updateRamenConfigEnabled" -}}
+{{- $ramen := .Values.ramen | default dict -}}
+{{- if index $ramen "updateRamenConfig" | default false -}}1{{- else -}}0{{- end -}}
+{{- end -}}
+
+{{/*
+Env value for drClusterOperator patch fields. Uses chart default only when the key is absent;
+explicit false or "" is passed through so the script can skip that yq edit.
+*/}}
+{{- define "rdr.drClusterOperatorPatchEnvValue" -}}
+{{- $cfg := index . "config" -}}
+{{- $key := index . "key" -}}
+{{- $default := index . "default" -}}
+{{- if hasKey $cfg $key -}}
+{{- index $cfg $key | toString -}}
+{{- else -}}
+{{- $default -}}
+{{- end -}}
+{{- end -}}
+
 {{/* Edge GitOps VMs deploy job + RBAC. Default on. */}}
 {{- define "rdr.edgeGitopsVmsEnabled" -}}
 {{- $egv := .Values.edgeGitopsVms | default dict -}}

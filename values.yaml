@@ -97,9 +97,21 @@ main:
 # infrastructureEnabled: DRPolicy, DRCluster validation, and chart-owned DRClusters only
 # (useful when resourcesEnabled is false, e.g. partner CSI without DRPC/VMs).
 ramen:
-  # -- When true, run the script files/update-ramen-config.sh via a Job to make
-  # modifications to Ramen's Hub Configmap. Defualt: false
-  # updateRamenConfig: false
+  # -- When true, run the update-ramen-config Job and RBAC to patch hub Ramen ConfigMap.
+  updateRamenConfig: false
+  # -- drClusterOperator fields written into ramen_manager_config.yaml when updateRamenConfig is true.
+  # Set a field to false or "" to leave that key unchanged in the hub ConfigMap.
+  drClusterOperator:
+    # -- OLM catalog source for the DR cluster operator.
+    catalogSourceName: rhdr-catalog
+    # -- Namespace of the OLM catalog source.
+    catalogSourceNamespaceName: openshift-marketplace
+    # -- Operator package name in the catalog.
+    packageName: rhdr-cluster-operator
+    # -- Operator subscription channel.
+    channelName: stable-4.22
+    # -- Target namespace for the DR cluster operator.
+    namespaceName: openshift-dr-system
   # -- When false, skip DRPC, Placement, and DRPC health job. DRPolicy/validation/DRClusters
   # still render if infrastructureEnabled is true.
   resourcesEnabled: true

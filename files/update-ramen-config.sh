@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# Upsert hub Ramen s3StoreProfiles for chart-owned DRClusters (non-ODF / partner path).
-# Does not set caCertificates — opp-policy s3CaInjector owns that.
-# Requires: oc, yq (mikefarah v4); aws CLI when ENSURE_BUCKETS=true.
+# Patch hub Ramen drClusterOperator settings in ramen_manager_config.yaml.
+# Requires: oc, yq (mikefarah v4).
 set -euo pipefail
 
 RAMEN_NAMESPACE="${RAMEN_NAMESPACE:?RAMEN_NAMESPACE is required}"
 RAMEN_CONFIGMAP="${RAMEN_CONFIGMAP:?RAMEN_CONFIGMAP is required}"
 RAMEN_CONFIG_KEY="${RAMEN_CONFIG_KEY:-ramen_manager_config.yaml}"
+DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAME="${DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAME:-}"
+DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAMESPACE="${DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAMESPACE:-}"
+DR_CLUSTER_OPERATOR_PACKAGE_NAME="${DR_CLUSTER_OPERATOR_PACKAGE_NAME:-}"
+DR_CLUSTER_OPERATOR_CHANNEL_NAME="${DR_CLUSTER_OPERATOR_CHANNEL_NAME:-}"
+DR_CLUSTER_OPERATOR_NAMESPACE="${DR_CLUSTER_OPERATOR_NAMESPACE:-}"
 WAIT_SECONDS="${WAIT_SECONDS:-3600}"
 POLL_INTERVAL="${POLL_INTERVAL:-15}"
-WORK_DIR="${WORK_DIR:-/tmp/rdr-s3-profiles}"
+WORK_DIR="${WORK_DIR:-/tmp/update-ramen-config}"
 
 die() {
 	echo "ERROR: $*" >&2
@@ -44,15 +48,29 @@ wait_for_ramen_cm() {
 	die "ConfigMap ${RAMEN_NAMESPACE}/${RAMEN_CONFIGMAP} not ready in time (is Ramen/MCO installed?)"
 }
 
+should_patch_field() {
+	local value="$1"
+	[[ -n "$value" && "${value,,}" != "false" ]]
+}
+
+patch_field() {
+	local f="$1"
+	local yq_path="$2"
+	local value="$3"
+
+	if should_patch_field "$value"; then
+		yq eval -i "${yq_path}=\"${value}\"" "$f"
+	fi
+}
+
 patch() {
 	local f="$1"
 
-	yq eval -i '.drClusterOperator.catalogSourceName="ramen-catalog"' "$f"
-	yq eval -i '.drClusterOperator.catalogSourceNamespaceName="openshift-marketplace"' "$f"
-	yq eval -i '.drClusterOperator.packageName="rhdr-cluster-operator"' "$f"
-	yq eval -i '.drClusterOperator.channelName="stable-4.22"' "$f"
-	yq eval -i '.drClusterOperator.namespaceName="openshift-dr-system"' "$f"
-
+	patch_field "$f" ".drClusterOperator.catalogSourceName" "$DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAME"
+	patch_field "$f" ".drClusterOperator.catalogSourceNamespaceName" "$DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAMESPACE"
+	patch_field "$f" ".drClusterOperator.packageName" "$DR_CLUSTER_OPERATOR_PACKAGE_NAME"
+	patch_field "$f" ".drClusterOperator.channelName" "$DR_CLUSTER_OPERATOR_CHANNEL_NAME"
+	patch_field "$f" ".drClusterOperator.namespaceName" "$DR_CLUSTER_OPERATOR_NAMESPACE"
 }
 
 apply_patches() {
@@ -75,7 +93,7 @@ apply_patches() {
 }
 
 main() {
-	log "=== Ramen s3StoreProfiles upsert ==="
+	log "=== Ramen hub config update ==="
 	wait_for_ramen_cm
 
 	apply_patches

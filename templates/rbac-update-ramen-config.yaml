@@ -1,0 +1,45 @@
+{{- if eq "1" (include "rdr.updateRamenConfigEnabled" . | trim) }}
+{{- $ssp := ((.Values.drCluster | default dict).s3StoreProfiles | default dict) -}}
+{{- $job := ($ssp.job | default dict) -}}
+{{- $wave := ($job.argoCDSyncWave | default "6") | quote }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: update-ramen-config
+  namespace: open-cluster-management
+  labels:
+    app.kubernetes.io/name: update-ramen-config
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $wave }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: update-ramen-config
+  labels:
+    app.kubernetes.io/name: update-ramen-config
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $wave }}
+rules:
+# Hub Ramen ConfigMap patch
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: update-ramen-config
+  labels:
+    app.kubernetes.io/name: update-ramen-config
+  annotations:
+    argocd.argoproj.io/sync-wave: {{ $wave }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: update-ramen-config
+subjects:
+- kind: ServiceAccount
+  name: update-ramen-config
+  namespace: open-cluster-management
+{{- end }}

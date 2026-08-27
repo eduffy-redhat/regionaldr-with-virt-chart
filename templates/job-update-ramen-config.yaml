@@ -1,7 +1,8 @@
-{{- if eq true (.Values.ramen.updateRamenConfig | default false) }}
+{{- if eq "1" (include "rdr.updateRamenConfigEnabled" . | trim) }}
 {{- $ssp := ((.Values.drCluster | default dict).s3StoreProfiles | default dict) -}}
 {{- $ramen := ($ssp.ramen | default dict) -}}
 {{- $job := ($ssp.job | default dict) -}}
+{{- $dco := ((.Values.ramen | default dict).drClusterOperator | default dict) -}}
 {{- $wave := ($job.argoCDSyncWave | default "6") | quote }}
 apiVersion: batch/v1
 kind: Job
@@ -17,7 +18,7 @@ metadata:
     argocd.argoproj.io/sync-options: Prune=false
     argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
-    checksum/script: {{ .Files.Get "files/upsert-update-ramen-config.sh" | sha256sum }}
+    checksum/script: {{ .Files.Get "files/update-ramen-config.sh" | sha256sum }}
 spec:
   backoffLimit: {{ $job.backoffLimit | default 10 }}
   activeDeadlineSeconds: {{ $job.activeDeadlineSeconds | default 7200 }}
@@ -26,7 +27,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: update-ramen-config
-        app.kubernetes.io/component: s3-store-profiles
+        app.kubernetes.io/component: update-ramen-config
     spec:
       restartPolicy: OnFailure
       serviceAccountName: update-ramen-config
@@ -60,6 +61,16 @@ spec:
           value: {{ ($ramen.configMapName | default "ramen-hub-operator-config") | quote }}
         - name: RAMEN_CONFIG_KEY
           value: {{ ($ramen.configKey | default "ramen_manager_config.yaml") | quote }}
+        - name: DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAME
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "catalogSourceName" "default" "ramen-catalog") | quote }}
+        - name: DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAMESPACE
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "catalogSourceNamespaceName" "default" "openshift-marketplace") | quote }}
+        - name: DR_CLUSTER_OPERATOR_PACKAGE_NAME
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "packageName" "default" "rhdr-cluster-operator") | quote }}
+        - name: DR_CLUSTER_OPERATOR_CHANNEL_NAME
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "channelName" "default" "stable-4.22") | quote }}
+        - name: DR_CLUSTER_OPERATOR_NAMESPACE
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "config" $dco "key" "namespaceName" "default" "openshift-dr-system") | quote }}
         - name: WAIT_SECONDS
           value: {{ ($job.waitSeconds | default 3600) | quote }}
         - name: POLL_INTERVAL
@@ -78,55 +89,6 @@ spec:
           defaultMode: 0755
 ---
 apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: update-ramen-config
-  namespace: open-cluster-management
-  labels:
-    app.kubernetes.io/name: update-ramen-config
-  annotations:
-    argocd.argoproj.io/sync-wave: {{ $wave }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: update-ramen-config
-  labels:
-    app.kubernetes.io/name: update-ramen-config
-  annotations:
-    argocd.argoproj.io/sync-wave: {{ $wave }}
-rules:
-# Hub Ramen ConfigMap upsert
-- apiGroups: [""]
-  resources: ["configmaps"]
-  verbs: ["get", "list", "watch", "update", "patch"]
-# Copy credentials Secret into Ramen namespace
-- apiGroups: [""]
-  resources: ["secrets"]
-  verbs: ["get", "list", "watch", "create", "update", "patch"]
-# Discover S4 (or other) S3 Route host
-- apiGroups: ["route.openshift.io"]
-  resources: ["routes"]
-  verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: update-ramen-config
-  labels:
-    app.kubernetes.io/name: update-ramen-config
-  annotations:
-    argocd.argoproj.io/sync-wave: {{ $wave }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: update-ramen-config
-subjects:
-- kind: ServiceAccount
-  name: update-ramen-config
-  namespace: open-cluster-management
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: update-ramen-config-script
@@ -134,7 +96,7 @@ metadata:
   labels:
     app.kubernetes.io/name: update-ramen-config
   annotations:
-    argocd.argoproj.io/sync-wave: {{ ((((.Values.drCluster | default dict).s3StoreProfiles | default dict).job | default dict).argoCDSyncWave | default "6") | quote }}
+    argocd.argoproj.io/sync-wave: {{ $wave }}
 data:
   update-ramen-config.sh: |
 {{ .Files.Get "files/update-ramen-config.sh" | indent 4 }}
