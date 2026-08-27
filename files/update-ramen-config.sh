@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Patch hub Ramen drClusterOperator settings in ramen_manager_config.yaml.
+# Patch hub Ramen drClusterOperator settings and ramenOpsNamespace in ramen_manager_config.yaml.
 # Requires: oc, yq (mikefarah v4).
 set -euo pipefail
 
@@ -11,6 +11,7 @@ DR_CLUSTER_OPERATOR_CATALOG_SOURCE_NAMESPACE="${DR_CLUSTER_OPERATOR_CATALOG_SOUR
 DR_CLUSTER_OPERATOR_PACKAGE_NAME="${DR_CLUSTER_OPERATOR_PACKAGE_NAME:-}"
 DR_CLUSTER_OPERATOR_CHANNEL_NAME="${DR_CLUSTER_OPERATOR_CHANNEL_NAME:-}"
 DR_CLUSTER_OPERATOR_NAMESPACE="${DR_CLUSTER_OPERATOR_NAMESPACE:-}"
+RAMEN_OPS_NAMESPACE="${RAMEN_OPS_NAMESPACE:-}"
 WAIT_SECONDS="${WAIT_SECONDS:-3600}"
 POLL_INTERVAL="${POLL_INTERVAL:-15}"
 WORK_DIR="${WORK_DIR:-/tmp/update-ramen-config}"
@@ -69,6 +70,7 @@ patch() {
 	patch_field "$f" ".drClusterOperator.packageName" "$DR_CLUSTER_OPERATOR_PACKAGE_NAME"
 	patch_field "$f" ".drClusterOperator.channelName" "$DR_CLUSTER_OPERATOR_CHANNEL_NAME"
 	patch_field "$f" ".drClusterOperator.namespaceName" "$DR_CLUSTER_OPERATOR_NAMESPACE"
+	patch_field "$f" ".ramenOpsNamespace" "$RAMEN_OPS_NAMESPACE"
 }
 
 apply_patches() {
@@ -82,6 +84,14 @@ apply_patches() {
 
 	cp "$f" "$WORK_DIR/before.yaml"
 	patch "$f"
+
+	local ops_ns operator_ns
+	ops_ns=$(yq eval '.ramenOpsNamespace // ""' "$f")
+	operator_ns=$(yq eval '.drClusterOperator.namespaceName // ""' "$f")
+	if [[ -n "$ops_ns" && -n "$operator_ns" && "$ops_ns" == "$operator_ns" ]]; then
+		die "ramenOpsNamespace (${ops_ns}) must differ from drClusterOperator.namespaceName (ACM ManifestWork cannot include two v1.Namespace objects for the same name)"
+	fi
+
 	apply_ramen_config_if_changed "$WORK_DIR/before.yaml" "$f"
 }
 

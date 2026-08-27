@@ -112,6 +112,10 @@ ramen:
     channelName: stable-4.22
     # -- Target namespace for the DR cluster operator.
     namespaceName: openshift-dr-system
+  # -- Hub RamenConfig ramenOpsNamespace (spoke Namespace for unmanaged-app/DRPC operands).
+  # Must differ from drClusterOperator.namespaceName: ACM rejects two v1.Namespace
+  # manifests for the same name in ramen-dr-cluster ManifestWork. Set false or "" to skip.
+  opsNamespace: openshift-dr-ops
   # -- When false, skip DRPC, Placement, and DRPC health job. DRPolicy/validation/DRClusters
   # still render if infrastructureEnabled is true.
   resourcesEnabled: true

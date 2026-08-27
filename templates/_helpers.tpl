@@ -230,6 +230,16 @@ s3profile-{{ include "rdr.secondaryClusterName" . }}
 {{- if index $ramen "updateRamenConfig" | default false -}}1{{- else -}}0{{- end -}}
 {{- end -}}
 
+{{/* Env value for ramenOpsNamespace. Default openshift-dr-ops; false or "" skips the yq edit. */}}
+{{- define "rdr.ramenOpsNamespacePatchEnvValue" -}}
+{{- $ramen := .Values.ramen | default dict -}}
+{{- if hasKey $ramen "opsNamespace" -}}
+{{- index $ramen "opsNamespace" | toString -}}
+{{- else -}}
+openshift-dr-ops
+{{- end -}}
+{{- end -}}
+
 {{/*
 Env value for drClusterOperator patch fields. Uses chart values.yaml defaults when the key is absent;
 explicit false or "" is passed through so the script can skip that yq edit.

@@ -3,4 +3,4 @@ description: A Helm chart to deploy RegionalDR configuration including virtualiz
 keywords:
   - pattern
 name: regionaldr-with-virt
-version: 0.1.4
+version: 0.1.5

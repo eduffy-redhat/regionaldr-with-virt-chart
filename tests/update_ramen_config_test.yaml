@@ -39,6 +39,18 @@ tests:
           path: kind
           value: Job
         equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="DR_CLUSTER_OPERATOR_NAMESPACE")].value
+          value: openshift-dr-system
+      - documentSelector:
+          path: kind
+          value: Job
+        equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="RAMEN_OPS_NAMESPACE")].value
+          value: openshift-dr-ops
+      - documentSelector:
+          path: kind
+          value: Job
+        equal:
           path: spec.template.spec.serviceAccountName
           value: update-ramen-config
       - documentSelector:
@@ -109,3 +121,18 @@ tests:
       - equal:
           path: metadata.namespace
           value: openshift-dr-system
+
+  - it: RAMEN_OPS_NAMESPACE follows ramen.opsNamespace override
+    set:
+      ramen:
+        updateRamenConfig: true
+        opsNamespace: ramen-ops
+    templates:
+      - job-update-ramen-config.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="RAMEN_OPS_NAMESPACE")].value
+          value: ramen-ops

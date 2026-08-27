@@ -1,6 +1,6 @@
 # regionaldr-with-virt
 
-![Version: 0.1.4](https://img.shields.io/badge/Version-0.1.4-informational?style=flat-square)
+![Version: 0.1.5](https://img.shields.io/badge/Version-0.1.5-informational?style=flat-square)
 
 A Helm chart to deploy RegionalDR configuration including virtualization
 
@@ -24,9 +24,9 @@ When chart-owned DRClusters are created (`drCluster.create` or partner `ramen.in
 
 ### Optional hub Ramen `drClusterOperator` patch
 
-When `ramen.updateRamenConfig` is **true** (default **false**), a separate Sync hook Job at wave **6** patches `drClusterOperator` fields in the hub Ramen ConfigMap (`drCluster.s3StoreProfiles.ramen.configMapName`, default `ramen-hub-operator-config`). The Job and its RBAC are omitted unless this gate is enabled. Like the s3 profiles Job, it restarts hub operator pods only when the patched ConfigMap differs from what was already on the hub.
+When `ramen.updateRamenConfig` is **true** (default **false**), a separate Sync hook Job at wave **6** patches `drClusterOperator` fields and `ramenOpsNamespace` in the hub Ramen ConfigMap (`drCluster.s3StoreProfiles.ramen.configMapName`, default `ramen-hub-operator-config`). The Job and its RBAC are omitted unless this gate is enabled. Like the s3 profiles Job, it restarts hub operator pods only when the patched ConfigMap differs from what was already on the hub.
 
-Values under `ramen.drClusterOperator` parameterize each `yq` edit applied to `ramen_manager_config.yaml`:
+Values under `ramen.drClusterOperator` and `ramen.opsNamespace` parameterize each `yq` edit applied to `ramen_manager_config.yaml`:
 
 | Value                        | Patches                                        |
 | ---------------------------- | ---------------------------------------------- |
@@ -35,8 +35,9 @@ Values under `ramen.drClusterOperator` parameterize each `yq` edit applied to `r
 | `packageName`                | `drClusterOperator.packageName`                |
 | `channelName`                | `drClusterOperator.channelName`                |
 | `namespaceName`              | `drClusterOperator.namespaceName`              |
+| `ramen.opsNamespace`         | `ramenOpsNamespace`                            |
 
-Set any field to `false` or `""` to skip that edit and leave the existing hub value unchanged. Job timing and Ramen ConfigMap location reuse `drCluster.s3StoreProfiles.job` and `drCluster.s3StoreProfiles.ramen`.
+`ramen.opsNamespace` (default `openshift-dr-ops`) **must** differ from `ramen.drClusterOperator.namespaceName` (default `openshift-dr-system`). If they match, ACM denies `ramen-dr-cluster` ManifestWork (`duplicate manifest for resource ... v1.Namespace`). The pattern already creates both namespaces (`openshift-dr-system` and `openshift-dr-ops`). Set any field to `false` or `""` to skip that edit and leave the existing hub value unchanged. Job timing and Ramen ConfigMap location reuse `drCluster.s3StoreProfiles.job` and `drCluster.s3StoreProfiles.ramen`.
 
 PostSync settlement: `drpc-health-check` (wave **12**, only when `ramen.resourcesEnabled`) waits for DRPC health.
 When `argocd.disableAutomatedSync` is true (default), `argocd-sync-disable` (wave **13**) then removes Application automated sync so the regional-dr app stops reconciling after things settle — including `drpartner-s4` (`resourcesEnabled: false`) and `drpartner-minimal` (both `resourcesEnabled` and `infrastructureEnabled` false).
@@ -45,6 +46,7 @@ Set `argocd.disableAutomatedSync: false` to leave autosync on.
 
 ## Notable changes
 
+v0.1.5 - Patch hub `ramenOpsNamespace` from `ramen.opsNamespace` (default `openshift-dr-ops`) so it differs from `drClusterOperator.namespaceName`; ACM rejects duplicate `v1.Namespace` in `ramen-dr-cluster` ManifestWork
 v0.1.4 - ConfigMap editor Jobs (`ramen-s3-profiles`, `update-ramen-config`) restart hub Ramen operator pods only when `ramen_manager_config.yaml` actually changed (delete `app=ramen-hub` pods; do not `rollout restart`)
 v0.1.3 - Add optional `ramen.updateRamenConfig` gate (default false) with Sync hook Job and RBAC to patch hub Ramen `drClusterOperator` settings via `ramen.drClusterOperator`; set individual fields to `false` or `""` to skip that `yq` edit
 v0.1.2 - Parameterize DRPC placement to use values specified.
@@ -134,6 +136,7 @@ v0.0.1 - Initial release
 | ramen.drClusterOperator.namespaceName | string | `"openshift-dr-system"` | Target namespace for the DR cluster operator. |
 | ramen.drClusterOperator.packageName | string | `"rhdr-cluster-operator"` | Operator package name in the catalog. |
 | ramen.infrastructureEnabled | bool | `false` | When true (or when resourcesEnabled is true), render DRPolicy, DRCluster validation, and chart-owned DRClusters (see also drCluster.create). |
+| ramen.opsNamespace | string | `"openshift-dr-ops"` | Hub RamenConfig ramenOpsNamespace (spoke Namespace for unmanaged-app/DRPC operands). Must differ from drClusterOperator.namespaceName: ACM rejects two v1.Namespace manifests for the same name in ramen-dr-cluster ManifestWork. Set false or "" to skip. |
 | ramen.resourcesEnabled | bool | `true` | When false, skip DRPC, Placement, and DRPC health job. DRPolicy/validation/DRClusters still render if infrastructureEnabled is true. |
 | ramen.updateRamenConfig | bool | `false` | When true, run the update-ramen-config Job and RBAC to patch hub Ramen ConfigMap (restarts hub operator only if the ConfigMap changed). |
 | redis.external.address | string | `"rhel9-redis-001.gitops-vms.svc.cluster.local"` |  |
