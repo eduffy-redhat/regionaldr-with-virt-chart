@@ -28,13 +28,13 @@ When `ramen.updateRamenConfig` is **true** (default **false**), a separate Sync 
 
 Values under `ramen.drClusterOperator` parameterize each `yq` edit applied to `ramen_manager_config.yaml`:
 
-| Value | Patches |
-| --- | --- |
-| `catalogSourceName` | `drClusterOperator.catalogSourceName` |
+| Value                        | Patches                                        |
+| ---------------------------- | ---------------------------------------------- |
+| `catalogSourceName`          | `drClusterOperator.catalogSourceName`          |
 | `catalogSourceNamespaceName` | `drClusterOperator.catalogSourceNamespaceName` |
-| `packageName` | `drClusterOperator.packageName` |
-| `channelName` | `drClusterOperator.channelName` |
-| `namespaceName` | `drClusterOperator.namespaceName` |
+| `packageName`                | `drClusterOperator.packageName`                |
+| `channelName`                | `drClusterOperator.channelName`                |
+| `namespaceName`              | `drClusterOperator.namespaceName`              |
 
 Set any field to `false` or `""` to skip that edit and leave the existing hub value unchanged. Job timing and Ramen ConfigMap location reuse `drCluster.s3StoreProfiles.job` and `drCluster.s3StoreProfiles.ramen`.
 
