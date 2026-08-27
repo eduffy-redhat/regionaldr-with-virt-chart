@@ -1,6 +1,6 @@
 # regionaldr-with-virt
 
-![Version: 0.1.5](https://img.shields.io/badge/Version-0.1.5-informational?style=flat-square)
+![Version: 0.1.3](https://img.shields.io/badge/Version-0.1.3-informational?style=flat-square)
 
 A Helm chart to deploy RegionalDR configuration including virtualization
 
@@ -35,9 +35,14 @@ Values under `ramen.drClusterOperator` and `ramen.opsNamespace` parameterize eac
 | `packageName`                | `drClusterOperator.packageName`                |
 | `channelName`                | `drClusterOperator.channelName`                |
 | `namespaceName`              | `drClusterOperator.namespaceName`              |
+| `clusterServiceVersionName`  | `drClusterOperator.clusterServiceVersionName`  |
 | `ramen.opsNamespace`         | `ramenOpsNamespace`                            |
 
-`ramen.opsNamespace` (default `openshift-dr-ops`) **must** differ from `ramen.drClusterOperator.namespaceName` (default `openshift-dr-system`). If they match, ACM denies `ramen-dr-cluster` ManifestWork (`duplicate manifest for resource ... v1.Namespace`). The pattern already creates both namespaces (`openshift-dr-system` and `openshift-dr-ops`). Set any field to `false` or `""` to skip that edit and leave the existing hub value unchanged. Job timing and Ramen ConfigMap location reuse `drCluster.s3StoreProfiles.job` and `drCluster.s3StoreProfiles.ramen`.
+`ramen.opsNamespace` (default `openshift-dr-ops`) **must** differ from `ramen.drClusterOperator.namespaceName` (default `openshift-dr-system`). If they match, ACM denies `ramen-dr-cluster` ManifestWork (`duplicate manifest for resource ... v1.Namespace`). The pattern already creates both namespaces (`openshift-dr-system` and `openshift-dr-ops`).
+
+If `clusterServiceVersionName` is unset, the hub operator defaults spoke `startingCSV` to `ramen-dr-cluster-operator.v0.0.1` (not derived from `packageName`). That CSV is not in `rhdr-catalog`, so OLM cannot resolve `rhdr-cluster-operator`. Set `ramen.drClusterOperator.clusterServiceVersionName` to a CSV that exists in that package/channel (default `rhdr-cluster-operator.v4.22.0-86.stable`). After a CSV change, recreate `ramen-dr-cluster` ManifestWorks if the hub operator reused the existing Subscription (it keeps `startingCSV` when package/channel/catalog are unchanged).
+
+Set any field to `false` or `""` to skip that edit and leave the existing hub value unchanged. Job timing and Ramen ConfigMap location reuse `drCluster.s3StoreProfiles.job` and `drCluster.s3StoreProfiles.ramen`.
 
 PostSync settlement: `drpc-health-check` (wave **12**, only when `ramen.resourcesEnabled`) waits for DRPC health.
 When `argocd.disableAutomatedSync` is true (default), `argocd-sync-disable` (wave **13**) then removes Application automated sync so the regional-dr app stops reconciling after things settle — including `drpartner-s4` (`resourcesEnabled: false`) and `drpartner-minimal` (both `resourcesEnabled` and `infrastructureEnabled` false).
@@ -46,9 +51,7 @@ Set `argocd.disableAutomatedSync: false` to leave autosync on.
 
 ## Notable changes
 
-v0.1.5 - Patch hub `ramenOpsNamespace` from `ramen.opsNamespace` (default `openshift-dr-ops`) so it differs from `drClusterOperator.namespaceName`; ACM rejects duplicate `v1.Namespace` in `ramen-dr-cluster` ManifestWork
-v0.1.4 - ConfigMap editor Jobs (`ramen-s3-profiles`, `update-ramen-config`) restart hub Ramen operator pods only when `ramen_manager_config.yaml` actually changed (delete `app=ramen-hub` pods; do not `rollout restart`)
-v0.1.3 - Add optional `ramen.updateRamenConfig` gate (default false) with Sync hook Job and RBAC to patch hub Ramen `drClusterOperator` settings via `ramen.drClusterOperator`; set individual fields to `false` or `""` to skip that `yq` edit
+v0.1.3 - Add optional `ramen.updateRamenConfig` gate (default false) with Sync hook Job and RBAC to patch hub Ramen `drClusterOperator` (including `clusterServiceVersionName`) and `ramenOpsNamespace`; ConfigMap editor Jobs restart hub operator pods only when the ConfigMap changed (delete `app=ramen-hub` pods; do not `rollout restart`); set individual fields to `false` or `""` to skip that `yq` edit
 v0.1.2 - Parameterize DRPC placement to use values specified.
 v0.1.1 - Fix argocd-sync-disable / drpc-health Application CR namespace: use `pattern`-`clusterGroup.name` (not spoke `main.clusterGroupName`, and not `$ARGOCD_APP_NAMESPACE` / `global.namespace` which is destination `regional-dr`); add hub Application ignoreDifferences for regional-dr syncPolicy.automated so disable sticks under parent selfHeal; fail the Job when the Application is missing instead of soft-skipping; gate sync-disable with `argocd.disableAutomatedSync` (default true)
 v0.1.0 - Replace `odf.postInstallFixesEnabled` / `odf.drCluster` with `drCluster.create` and default S3 profile names (`s3profile-` plus cluster name); add `ramen.infrastructureEnabled` for DRPolicy/validation/chart DRClusters when `resourcesEnabled` is false; upsert hub Ramen `s3StoreProfiles` when chart-owned DRClusters are created (values-driven, hub S4 defaults; opp-policy still owns `caCertificates`); Sync-hook (not PostSync) so profiles exist before DRPolicy validation; split DRPC health check from Argo CD sync-disable (sync-disable always runs after settlement)
@@ -129,10 +132,11 @@ v0.0.1 - Initial release
 | odfRamenTrustedCa.pollInterval | int | `15` |  |
 | odfRamenTrustedCa.ramenS3WaitSeconds | int | `3600` |  |
 | odfRamenTrustedCa.trustedCaWaitSeconds | int | `3600` |  |
-| ramen.drClusterOperator | object | `{"catalogSourceName":"rhdr-catalog","catalogSourceNamespaceName":"openshift-marketplace","channelName":"stable-4.22","namespaceName":"openshift-dr-system","packageName":"rhdr-cluster-operator"}` | drClusterOperator fields written into ramen_manager_config.yaml when updateRamenConfig is true. Set a field to false or "" to leave that key unchanged in the hub ConfigMap. |
+| ramen.drClusterOperator | object | `{"catalogSourceName":"rhdr-catalog","catalogSourceNamespaceName":"openshift-marketplace","channelName":"stable-4.22","clusterServiceVersionName":"rhdr-cluster-operator.v4.22.0-86.stable","namespaceName":"openshift-dr-system","packageName":"rhdr-cluster-operator"}` | drClusterOperator fields written into ramen_manager_config.yaml when updateRamenConfig is true. Set a field to false or "" to leave that key unchanged in the hub ConfigMap. |
 | ramen.drClusterOperator.catalogSourceName | string | `"rhdr-catalog"` | OLM catalog source for the DR cluster operator. |
 | ramen.drClusterOperator.catalogSourceNamespaceName | string | `"openshift-marketplace"` | Namespace of the OLM catalog source. |
 | ramen.drClusterOperator.channelName | string | `"stable-4.22"` | Operator subscription channel. |
+| ramen.drClusterOperator.clusterServiceVersionName | string | `"rhdr-cluster-operator.v4.22.0-86.stable"` | startingCSV on the spoke Subscription. Empty falls back to ramen-dr-cluster-operator.v0.0.1 (not derived from packageName). Must exist in the catalog package/channel. |
 | ramen.drClusterOperator.namespaceName | string | `"openshift-dr-system"` | Target namespace for the DR cluster operator. |
 | ramen.drClusterOperator.packageName | string | `"rhdr-cluster-operator"` | Operator package name in the catalog. |
 | ramen.infrastructureEnabled | bool | `false` | When true (or when resourcesEnabled is true), render DRPolicy, DRCluster validation, and chart-owned DRClusters (see also drCluster.create). |

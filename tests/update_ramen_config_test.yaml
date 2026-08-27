@@ -51,6 +51,12 @@ tests:
           path: kind
           value: Job
         equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="DR_CLUSTER_OPERATOR_CSV")].value
+          value: rhdr-cluster-operator.v4.22.0-86.stable
+      - documentSelector:
+          path: kind
+          value: Job
+        equal:
           path: spec.template.spec.serviceAccountName
           value: update-ramen-config
       - documentSelector:
@@ -136,3 +142,19 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].env[?(@.name=="RAMEN_OPS_NAMESPACE")].value
           value: ramen-ops
+
+  - it: DR_CLUSTER_OPERATOR_CSV follows clusterServiceVersionName override
+    set:
+      ramen:
+        updateRamenConfig: true
+        drClusterOperator:
+          clusterServiceVersionName: rhdr-cluster-operator.v4.22.0-99.stable
+    templates:
+      - job-update-ramen-config.yaml
+    documentSelector:
+      path: kind
+      value: Job
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="DR_CLUSTER_OPERATOR_CSV")].value
+          value: rhdr-cluster-operator.v4.22.0-99.stable

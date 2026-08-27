@@ -112,6 +112,9 @@ ramen:
     channelName: stable-4.22
     # -- Target namespace for the DR cluster operator.
     namespaceName: openshift-dr-system
+    # -- startingCSV on the spoke Subscription. Empty falls back to ramen-dr-cluster-operator.v0.0.1
+    # (not derived from packageName). Must exist in the catalog package/channel.
+    clusterServiceVersionName: rhdr-cluster-operator.v4.22.0-86.stable
   # -- Hub RamenConfig ramenOpsNamespace (spoke Namespace for unmanaged-app/DRPC operands).
   # Must differ from drClusterOperator.namespaceName: ACM rejects two v1.Namespace
   # manifests for the same name in ramen-dr-cluster ManifestWork. Set false or "" to skip.

@@ -71,6 +71,8 @@ spec:
           value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "root" $ "config" $dco "key" "channelName") | quote }}
         - name: DR_CLUSTER_OPERATOR_NAMESPACE
           value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "root" $ "config" $dco "key" "namespaceName") | quote }}
+        - name: DR_CLUSTER_OPERATOR_CSV
+          value: {{ include "rdr.drClusterOperatorPatchEnvValue" (dict "root" $ "config" $dco "key" "clusterServiceVersionName") | quote }}
         - name: RAMEN_OPS_NAMESPACE
           value: {{ include "rdr.ramenOpsNamespacePatchEnvValue" . | quote }}
         - name: WAIT_SECONDS
